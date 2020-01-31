@@ -87,6 +87,7 @@ class Pythonrouge:
         self.ROUGE_path = ROUGE_path
         self.data_path = data_path
         # peer/model path
+        self.bioasq_conf = bioasq_conf
         self.peer_path = peer_path
         self.model_path = model_path
         self.summary_file_exist = summary_file_exist
