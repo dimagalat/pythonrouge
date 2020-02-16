@@ -7,15 +7,21 @@ from glob import glob
 from tempfile import mkdtemp
 import subprocess
 import shutil
-ROUGE_path = os.path.join("/".join(os.path.abspath(__file__).split("/")[:-1]) +
-                          "/RELEASE-1.5.5/ROUGE-1.5.5.pl")
-data_path = os.path.join("/".join(os.path.abspath(__file__).split("/")[:-1]) +
-                         "/RELEASE-1.5.5/data")
+import platform
+
+if platform.system() != "Windows":
+    ROUGE_path = os.path.join("/".join(os.path.abspath(__file__).split("/")[:-1]) +
+                              "/RELEASE-1.5.5/ROUGE-1.5.5.pl")
+    data_path = os.path.join("/".join(os.path.abspath(__file__).split("/")[:-1]) +
+                             "/RELEASE-1.5.5/data")
+else:
+    ROUGE_path = "%USERPROFILE%\\Documents\\ROUGE-1.5.5\\ROUGE-1.5.5.pl"
+    data_path = "%USERPROFILE%\\Documents\\ROUGE-1.5.5\\data"
 
 
 class Pythonrouge:
     def __init__(self, summary_file_exist=True, summary=None, reference=None,
-                 delete_xml=True, xml_dir='/tmp/',
+                 delete_xml=True, xml_dir='',
                  recall_only=False, f_measure_only=False,
                  peer_path='/tmp/', model_path='/tmp/',
                  n_gram=2, ROUGE_SU4=True, ROUGE_L=False, ROUGE_W=False,
@@ -196,14 +202,19 @@ class Pythonrouge:
 
     def set_command(self):
         self.make_xml()
-        rouge_cmd = ['perl', self.ROUGE_path, "-e", self.data_path, "-a"]
-        rouge_cmd += '-n {}'.format(self.n_gram).split()
 
+        if platform.system() != "Windows":
+            rouge_cmd = ['perl', self.ROUGE_path, "-e", self.data_path, "-a"]
+        else:
+            rouge_cmd = [self.ROUGE_path, "-e", self.data_path, "-a"]
+        
         # BioASQ summarisation task
         if self.bioasq_conf:
-            rouge_cmd += '-c 95 -2 4 -u -x -n 4 -a'.split()
+            rouge_cmd += '-c 95 -2 4 -u -x -n 4'.split()
             rouge_cmd.append(self.setting_file)
             return rouge_cmd
+
+        rouge_cmd += '-n {}'.format(self.n_gram).split()
 
         # ROUGE-SU4
         if self.ROUGE_SU4:
@@ -405,7 +416,12 @@ class Pythonrouge:
 
     def calc_score(self):
         rouge_cmd = self.set_command()
-        output = subprocess.check_output(rouge_cmd, stderr=subprocess.STDOUT)
+        
+        if platform.system() != "Windows":
+            output = subprocess.check_output(rouge_cmd, stderr=subprocess.STDOUT)
+        else:
+            output = subprocess.check_output(" ".join(rouge_cmd), shell=True, stderr=subprocess.STDOUT)
+
         output = output.decode('utf-8')
         output = output.strip().split('\n')
         result = self.parse_output(output)
